@@ -125,7 +125,7 @@ local function GetClosestPlayer()
 		end
 	elseif (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(Camera:WorldToViewportPoint(Environment.Locked.Character[Environment.Settings.LockPart].Position).X, Camera:WorldToViewportPoint(Environment.Locked.Character[Environment.Settings.LockPart].Position).Y)).Magnitude > RequiredDistance then
 		Environment.Locked = nil
-		Animation:Cancel()
+		if Animation then Animation:Cancel() end
 		Environment.FOVCircle.Color = GetColor(Environment.FOVSettings.Color)
 	end
 end
@@ -188,21 +188,23 @@ local function Load()
 		if Running and Environment.Settings.Enabled then
 			GetClosestPlayer()
 
-			if Environment.Settings.ThirdPerson then
-				Environment.Settings.ThirdPersonSensitivity = math.clamp(Environment.Settings.ThirdPersonSensitivity, 0.1, 5)
+			if Environment.Locked then
+				if Environment.Settings.ThirdPerson then
+					Environment.Settings.ThirdPersonSensitivity = math.clamp(Environment.Settings.ThirdPersonSensitivity, 0.1, 5)
 
-				local Vector = Camera:WorldToViewportPoint(Environment.Locked.Character[Environment.Settings.LockPart].Position)
-				mousemoverel((Vector.X - UserInputService:GetMouseLocation().X) * Environment.Settings.ThirdPersonSensitivity, (Vector.Y - UserInputService:GetMouseLocation().Y) * Environment.Settings.ThirdPersonSensitivity)
-			else
-				if Environment.Settings.Sensitivity > 0 then
-					Animation = TweenService:Create(Camera, TweenInfo.new(Environment.Settings.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {CFrame = CFrame.new(Camera.CFrame.Position, Environment.Locked.Character[Environment.Settings.LockPart].Position)})
-					Animation:Play()
+					local Vector = Camera:WorldToViewportPoint(Environment.Locked.Character[Environment.Settings.LockPart].Position)
+					mousemoverel((Vector.X - UserInputService:GetMouseLocation().X) * Environment.Settings.ThirdPersonSensitivity, (Vector.Y - UserInputService:GetMouseLocation().Y) * Environment.Settings.ThirdPersonSensitivity)
 				else
-					Camera.CFrame = CFrame.new(Camera.CFrame.Position, Environment.Locked.Character[Environment.Settings.LockPart].Position)
+					if Environment.Settings.Sensitivity > 0 then
+						Animation = TweenService:Create(Camera, TweenInfo.new(Environment.Settings.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {CFrame = CFrame.new(Camera.CFrame.Position, Environment.Locked.Character[Environment.Settings.LockPart].Position)})
+						Animation:Play()
+					else
+						Camera.CFrame = CFrame.new(Camera.CFrame.Position, Environment.Locked.Character[Environment.Settings.LockPart].Position)
+					end
 				end
-			end
 
-			Environment.FOVCircle.Color = GetColor(Environment.FOVSettings.LockedColor)
+				Environment.FOVCircle.Color = GetColor(Environment.FOVSettings.LockedColor)
+			end
 		end
 	end)
 
@@ -215,7 +217,7 @@ local function Load()
 
 						if not Running then
 							Environment.Locked = nil
-							Animation:Cancel()
+							if Animation then Animation:Cancel() end
 							Environment.FOVCircle.Color = GetColor(Environment.FOVSettings.Color)
 						end
 					else
@@ -231,7 +233,7 @@ local function Load()
 
 						if not Running then
 							Environment.Locked = nil
-							Animation:Cancel()
+							if Animation then Animation:Cancel() end
 							Environment.FOVCircle.Color = GetColor(Environment.FOVSettings.Color)
 						end
 					else
@@ -249,7 +251,7 @@ local function Load()
 					if not Environment.Settings.Toggle then
 						Running = false
 						Environment.Locked = nil
-						Animation:Cancel()
+						if Animation then Animation:Cancel() end
 						Environment.FOVCircle.Color = GetColor(Environment.FOVSettings.Color)
 					end
 				end
@@ -260,7 +262,7 @@ local function Load()
 					if not Environment.Settings.Toggle then
 						Running = false
 						Environment.Locked = nil
-						Animation:Cancel()
+						if Animation then Animation:Cancel() end
 						Environment.FOVCircle.Color = GetColor(Environment.FOVSettings.Color)
 					end
 				end
@@ -324,6 +326,29 @@ function Environment.Functions:ResetSettings()
 	}
 end
 
+function Environment.Functions:SetEnabled(State)
+	Environment.Settings.Enabled = State
+	if not State then
+		Running = false
+		Environment.Locked = nil
+		if Animation then Animation:Cancel() end
+		if Environment.FOVCircle then
+			Environment.FOVCircle.Color = GetColor(Environment.FOVSettings.Color)
+		end
+	end
+	if _G.AimbotStateChanged then
+		_G.AimbotStateChanged(State)
+	end
+end
+
+function Environment.Functions:SetTriggerKey(KeyName)
+	Environment.Settings.TriggerKey = KeyName
+end
+
+function Environment.Functions:SetToggle(State)
+	Environment.Settings.Toggle = State
+end
+
 if not Drawing or not getgenv then
 	SendNotification(Title, "Your exploit does not support this script", 3); return
 end
@@ -336,4 +361,10 @@ if Environment.Settings.ReloadOnTeleport then
 	end
 end
 
-Load(); SendNotification(Title, "Aimbot script successfully loaded! Check the GitHub page on how to configure the script.", 5)
+Load()
+
+if _G.AimbotStateChanged then
+	_G.AimbotStateChanged(Environment.Settings.Enabled)
+end
+
+SendNotification(Title, "Aimbot script successfully loaded!", 5)
